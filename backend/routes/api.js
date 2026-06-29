@@ -14,13 +14,14 @@ const Review = require('../models/Review');
 // Import Middlewares & Controllers
 const { protect, admin } = require('../middleware/auth');
 const upload = require('../middleware/upload');
+const { authSendLimiter, authVerifyLimiter } = require('../middleware/rateLimiter');
 const authController = require('../controllers/authController');
 
 // ==========================================
 // AUTH ROUTES
 // ==========================================
-router.post('/auth/send-otp', authController.sendOtp);
-router.post('/auth/verify-otp', authController.verifyOtp);
+router.post('/auth/send-otp', authSendLimiter, authController.sendOtp);
+router.post('/auth/verify-otp', authVerifyLimiter, authController.verifyOtp);
 router.post('/auth/google', authController.googleLogin);
 router.get('/auth/me', protect, authController.getMe);
 
@@ -44,7 +45,7 @@ let mockMedicines = [
     discount: 10,
     rxRequired: false,
     stock: 120,
-    image: "https://images.unsplash.com/photo-1584017911766-d451b3d0e843?w=500&auto=format&fit=crop&q=60",
+    image: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPSc1MDAnIGhlaWdodD0nMzAwJz48cmVjdCB3aWR0aD0nMTAwJScgaGVpZ2h0PScxMDAlJyBmaWxsPScjZWVmMmZmJy8+PHRleHQgeD0nNTAlJyB5PSc1MCUnIGRvbWluYW50LWJhc2VsaW5lPSdtaWRkbGUnIHRleHQtYW5jaG9yPSdtaWRkbGUnIGZpbGw9JyMwMDVhY2MnIGZvbnQtZmFtaWx5PSdQb3BwaW5zLCBBcmlhbCwgc2Fucy1zZXJpZicgZm9udC1zaXplPScyOCc+TWVkQ2FyZTwvdGV4dD48L3N2Zz4=",
     rating: 4.6
   },
   {
@@ -63,7 +64,7 @@ let mockMedicines = [
     discount: 15,
     rxRequired: true,
     stock: 8,
-    image: "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=500&auto=format&fit=crop&q=60",
+    image: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPSc1MDAnIGhlaWdodD0nMzAwJz48cmVjdCB3aWR0aD0nMTAwJScgaGVpZ2h0PScxMDAlJyBmaWxsPScjZWVmMmZmJy8+PHRleHQgeD0nNTAlJyB5PSc1MCUnIGRvbWluYW50LWJhc2VsaW5lPSdtaWRkbGUnIHRleHQtYW5jaG9yPSdtaWRkbGUnIGZpbGw9JyMwMDVhY2MnIGZvbnQtZmFtaWx5PSdQb3BwaW5zLCBBcmlhbCwgc2Fucy1zZXJpZicgZm9udC1zaXplPScyOCc+TWVkQ2FyZTwvdGV4dD48L3N2Zz4=",
     rating: 4.4
   },
   {
@@ -1266,7 +1267,6 @@ router.patch('/admin/prescriptions/:id', protect, admin, async (req, res) => {
 router.get('/admin/orders', protect, admin, async (req, res) => {
   try {
     if (global.isDbMock) {
-      // populate with mockUsers
       const populated = mockOrders.map(o => {
         const u = global.mockUsersList.find(usr => usr.id === o.userId || usr._id === o.userId) || { name: 'Admin User', email: 'admin@medcare.com' };
         return { ...o, userId: u };
@@ -1277,6 +1277,41 @@ router.get('/admin/orders', protect, admin, async (req, res) => {
     res.status(200).json({ success: true, orders });
   } catch (error) {
     res.status(500).json({ success: false, message: "Failed to fetch orders" });
+  }
+});
+
+router.get('/admin/prescriptions', protect, admin, async (req, res) => {
+  try {
+    if (global.isDbMock) {
+      const prescriptions = mockPrescriptions.map(rx => {
+        const u = global.mockUsersList.find(usr => usr.id === rx.userId || usr._id === rx.userId) || { name: 'Guest User', email: 'guest@medcare.com' };
+        return { ...rx, userId: u };
+      });
+      return res.status(200).json({ success: true, prescriptions });
+    }
+    const prescriptions = await Prescription.find({}).populate('userId', 'name email').sort({ createdAt: -1 });
+    res.status(200).json({ success: true, prescriptions });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Failed to fetch prescriptions" });
+  }
+});
+
+router.get('/admin/users', protect, admin, async (req, res) => {
+  try {
+    if (global.isDbMock) {
+      const users = global.mockUsersList.map(u => ({
+        _id: u._id || u.id,
+        name: u.name,
+        email: u.email,
+        role: u.role || 'user',
+        createdAt: u.createdAt || new Date().toISOString()
+      }));
+      return res.status(200).json({ success: true, users });
+    }
+    const users = await User.find({}, 'name email role createdAt').sort({ createdAt: -1 });
+    res.status(200).json({ success: true, users });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Failed to fetch users" });
   }
 });
 

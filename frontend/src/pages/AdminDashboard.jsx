@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
-import { LayoutDashboard, ShoppingBag, Plus, Trash2, Edit, Check, X, FileText, AlertTriangle, Users, DollarSign, Activity } from 'lucide-react';
+import { LayoutDashboard, ShoppingBag, Plus, Trash2, Edit, Check, X, FileText, AlertTriangle, Users, DollarSign, Activity, ArrowUpRight, ArrowDownRight } from 'lucide-react';
 
 const AdminDashboard = () => {
   const { token, showToast } = useApp();
-  const [activeSubTab, setActiveSubTab] = useState('overview'); // overview | medicines | orders | prescriptions
+  const [activeSubTab, setActiveSubTab] = useState('overview'); // overview | medicines | orders | prescriptions | users | reports
   
   // Dashboard data states
   const [dashboardData, setDashboardData] = useState(null);
@@ -18,6 +18,14 @@ const AdminDashboard = () => {
   // Orders list
   const [orders, setOrders] = useState([]);
   const [loadingOrders, setLoadingOrders] = useState(true);
+
+  // Prescriptions list
+  const [prescriptions, setPrescriptions] = useState([]);
+  const [loadingPrescriptions, setLoadingPrescriptions] = useState(true);
+
+  // Users list
+  const [users, setUsers] = useState([]);
+  const [loadingUsers, setLoadingUsers] = useState(true);
 
   // Medicine Form States (for Add / Edit)
   const [formOpen, setFormOpen] = useState(false);
@@ -85,11 +93,47 @@ const AdminDashboard = () => {
     }
   };
 
+  const fetchPrescriptions = async () => {
+    setLoadingPrescriptions(true);
+    try {
+      const res = await fetch('/api/admin/prescriptions', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (data.success) {
+        setPrescriptions(data.prescriptions);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoadingPrescriptions(false);
+    }
+  };
+
+  const fetchUsers = async () => {
+    setLoadingUsers(true);
+    try {
+      const res = await fetch('/api/admin/users', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (data.success) {
+        setUsers(data.users);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoadingUsers(false);
+    }
+  };
+
   useEffect(() => {
     if (token) {
       fetchDashboard();
       if (activeSubTab === 'medicines') fetchMedicines();
       if (activeSubTab === 'orders') fetchOrders();
+      if (activeSubTab === 'prescriptions') fetchPrescriptions();
+      if (activeSubTab === 'users') fetchUsers();
     }
   }, [token, activeSubTab]);
 
@@ -229,6 +273,9 @@ const AdminDashboard = () => {
       const data = await res.json();
       if (data.success) {
         showToast(`Prescription status set to ${status}.`, 'success');
+        if (activeSubTab === 'prescriptions') {
+          fetchPrescriptions();
+        }
         fetchDashboard(); // Refresh queue list
       }
     } catch (err) {
@@ -268,6 +315,27 @@ const AdminDashboard = () => {
             className={`w-full text-left px-4 py-2 text-xs font-semibold rounded-xl transition-colors flex items-center gap-2.5 ${activeSubTab === 'orders' ? 'bg-primary text-white' : 'hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-650 dark:text-slate-350'}`}
           >
             <Activity className="h-4 w-4" /> Manage Orders
+          </button>
+
+          <button
+            onClick={() => setActiveSubTab('prescriptions')}
+            className={`w-full text-left px-4 py-2 text-xs font-semibold rounded-xl transition-colors flex items-center gap-2.5 ${activeSubTab === 'prescriptions' ? 'bg-primary text-white' : 'hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-650 dark:text-slate-350'}`}
+          >
+            <FileText className="h-4 w-4" /> Prescription Reviews
+          </button>
+
+          <button
+            onClick={() => setActiveSubTab('users')}
+            className={`w-full text-left px-4 py-2 text-xs font-semibold rounded-xl transition-colors flex items-center gap-2.5 ${activeSubTab === 'users' ? 'bg-primary text-white' : 'hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-650 dark:text-slate-350'}`}
+          >
+            <Users className="h-4 w-4" /> User Management
+          </button>
+
+          <button
+            onClick={() => setActiveSubTab('reports')}
+            className={`w-full text-left px-4 py-2 text-xs font-semibold rounded-xl transition-colors flex items-center gap-2.5 ${activeSubTab === 'reports' ? 'bg-primary text-white' : 'hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-650 dark:text-slate-350'}`}
+          >
+            <DollarSign className="h-4 w-4" /> Reports & Insights
           </button>
         </div>
 
@@ -692,6 +760,188 @@ const AdminDashboard = () => {
                 </div>
               </div>
 
+            </div>
+          )}
+
+          {activeSubTab === 'prescriptions' && (
+            <div className="space-y-6">
+              <div className="border-b pb-4">
+                <h2 className="text-xl font-bold text-slate-850 dark:text-white">Prescription Review</h2>
+                <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">Review incoming prescriptions and approve or reject them for order fulfillment.</p>
+              </div>
+
+              <div className="bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-3xl shadow-sm overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs text-left border-collapse">
+                    <thead>
+                      <tr className="bg-slate-50 dark:bg-slate-900 text-slate-450 uppercase font-bold text-[10px] tracking-wider border-b dark:border-slate-700">
+                        <th className="p-4">RX ID</th>
+                        <th className="p-4">User</th>
+                        <th className="p-4">Doctor</th>
+                        <th className="p-4 text-center">Submitted</th>
+                        <th className="p-4 text-center">Status</th>
+                        <th className="p-4 text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-700 font-medium text-slate-750 dark:text-slate-350">
+                      {loadingPrescriptions ? (
+                        [...Array(4)].map((_, i) => (
+                          <tr key={i} className="animate-pulse"><td colSpan={6} className="h-12 bg-slate-50 dark:bg-slate-900"></td></tr>
+                        ))
+                      ) : prescriptions.length === 0 ? (
+                        <tr><td colSpan={6} className="p-8 text-center text-slate-500 dark:text-slate-400">No prescriptions available for review.</td></tr>
+                      ) : prescriptions.map((rx) => (
+                        <tr key={rx._id} className="hover:bg-slate-50/50 dark:hover:bg-slate-850">
+                          <td className="p-4 font-mono">#{rx._id.substring(8)}</td>
+                          <td className="p-4">
+                            <span className="font-bold text-slate-800 dark:text-slate-200 block">{rx.userId?.name || 'Guest'}</span>
+                            <span className="text-[9px] text-slate-400 block">{rx.userId?.email || 'No email'}</span>
+                          </td>
+                          <td className="p-4">{rx.doctorName || 'Unknown'}</td>
+                          <td className="p-4 text-center">{new Date(rx.createdAt || rx.date).toLocaleDateString()}</td>
+                          <td className="p-4 text-center">
+                            <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${rx.status === 'Pending' ? 'bg-amber-100 text-amber-700' : rx.status === 'Verified' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
+                              {rx.status}
+                            </span>
+                          </td>
+                          <td className="p-4 text-right">
+                            <div className="flex items-center justify-end gap-2">
+                              <a href={rx.fileUrl} target="_blank" rel="noreferrer" className="text-[11px] font-semibold text-primary hover:underline">View</a>
+                              <button
+                                onClick={() => handlePrescriptionApproval(rx._id, 'Verified')}
+                                className="px-3 py-1 rounded-2xl bg-secondary text-white text-[11px] font-semibold"
+                              >Approve</button>
+                              <button
+                                onClick={() => handlePrescriptionApproval(rx._id, 'Rejected')}
+                                className="px-3 py-1 rounded-2xl bg-red-100 text-red-700 text-[11px] font-semibold"
+                              >Reject</button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeSubTab === 'users' && (
+            <div className="space-y-6">
+              <div className="border-b pb-4">
+                <h2 className="text-xl font-bold text-slate-850 dark:text-white">User Management</h2>
+                <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">Browse registered users, monitor roles, and keep the community secure.</p>
+              </div>
+
+              <div className="bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-3xl shadow-sm overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs text-left border-collapse">
+                    <thead>
+                      <tr className="bg-slate-50 dark:bg-slate-900 text-slate-450 uppercase font-bold text-[10px] tracking-wider border-b dark:border-slate-700">
+                        <th className="p-4">Name</th>
+                        <th className="p-4">Email</th>
+                        <th className="p-4 text-center">Role</th>
+                        <th className="p-4 text-center">Joined</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-700 font-medium text-slate-700 dark:text-slate-350">
+                      {loadingUsers ? (
+                        [...Array(4)].map((_, i) => (
+                          <tr key={i} className="animate-pulse"><td colSpan={4} className="h-12 bg-slate-50 dark:bg-slate-900"></td></tr>
+                        ))
+                      ) : users.length === 0 ? (
+                        <tr><td colSpan={4} className="p-8 text-center text-slate-500 dark:text-slate-400">No users have been registered yet.</td></tr>
+                      ) : users.map((user) => (
+                        <tr key={user._id} className="hover:bg-slate-50/50 dark:hover:bg-slate-850">
+                          <td className="p-4 font-semibold text-slate-800 dark:text-slate-200">{user.name}</td>
+                          <td className="p-4 text-slate-500 dark:text-slate-400">{user.email}</td>
+                          <td className="p-4 text-center">
+                            <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold ${user.role === 'admin' ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-600 dark:bg-slate-900 dark:text-slate-300'}`}>
+                              {user.role}
+                            </span>
+                          </td>
+                          <td className="p-4 text-center text-slate-400 dark:text-slate-500">{new Date(user.createdAt).toLocaleDateString()}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeSubTab === 'reports' && (
+            <div className="space-y-6">
+              <div className="border-b pb-4">
+                <h2 className="text-xl font-bold text-slate-850 dark:text-white">Business Reports</h2>
+                <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">Analyze trends, compare performance, and spot inventory risks before they impact orders.</p>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-3xl p-5 shadow-sm">
+                  <p className="text-xs uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500">Average order value</p>
+                  <p className="text-3xl font-black text-slate-900 dark:text-white mt-4">₹{dashboardData?.stats.totalOrders ? Math.round(dashboardData.stats.totalRevenue / dashboardData.stats.totalOrders) : 0}</p>
+                  <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">Calculated from your current order volume.</p>
+                </div>
+                <div className="bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-3xl p-5 shadow-sm">
+                  <p className="text-xs uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500">Pending approvals</p>
+                  <p className="text-3xl font-black text-slate-900 dark:text-white mt-4">{dashboardData?.pendingPrescriptions?.length || 0}</p>
+                  <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">Prescriptions waiting review.</p>
+                </div>
+                <div className="bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-3xl p-5 shadow-sm">
+                  <p className="text-xs uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500">Low stock products</p>
+                  <p className="text-3xl font-black text-slate-900 dark:text-white mt-4">{dashboardData?.lowStockAlerts?.length || 0}</p>
+                  <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">Products that need restocking soon.</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-3xl p-6 shadow-sm">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-sm font-bold text-slate-900 dark:text-white">Top triggers</h3>
+                    <span className="text-xs text-slate-400 dark:text-slate-500">Insights</span>
+                  </div>
+                  <div className="space-y-3 text-sm text-slate-600 dark:text-slate-300">
+                    <div className="flex justify-between items-center gap-2">
+                      <div>
+                        <p className="font-semibold">Rapid order velocity</p>
+                        <p className="text-[11px] text-slate-400">Orders spiked on the latest day.</p>
+                      </div>
+                      <ArrowUpRight className="h-5 w-5 text-emerald-500" />
+                    </div>
+                    <div className="flex justify-between items-center gap-2">
+                      <div>
+                        <p className="font-semibold">Inventory warning</p>
+                        <p className="text-[11px] text-slate-400">Low stock items require restock soon.</p>
+                      </div>
+                      <ArrowDownRight className="h-5 w-5 text-red-500" />
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-3xl p-6 shadow-sm">
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-4">Low stock inventory</h3>
+                  {loadingDashboard ? (
+                    <div className="space-y-3">
+                      <div className="h-12 bg-slate-100 dark:bg-slate-900 rounded-2xl animate-pulse"></div>
+                      <div className="h-12 bg-slate-100 dark:bg-slate-900 rounded-2xl animate-pulse"></div>
+                    </div>
+                  ) : dashboardData.lowStockAlerts.length === 0 ? (
+                    <p className="text-sm text-slate-500 dark:text-slate-400">Your inventory is healthy and fully stocked.</p>
+                  ) : (
+                    <div className="space-y-3">
+                      {dashboardData.lowStockAlerts.slice(0, 4).map((med) => (
+                        <div key={med._id} className="flex items-center justify-between gap-3 bg-slate-50 dark:bg-slate-900 rounded-2xl p-4">
+                          <div>
+                            <p className="font-semibold text-slate-800 dark:text-slate-100">{med.name}</p>
+                            <p className="text-[11px] text-slate-400">{med.category}</p>
+                          </div>
+                          <span className="text-[11px] font-semibold text-red-700 dark:text-red-300">{med.stock} left</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           )}
 

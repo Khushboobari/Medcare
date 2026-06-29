@@ -1,8 +1,11 @@
 const jwt = require('jsonwebtoken');
 const { OAuth2Client } = require('google-auth-library');
-const https = require('https');
+const bcrypt = require('bcryptjs');
 const User = require('../models/User');
 const OTP = require('../models/OTP');
+const { validateEmail, validatePhone, validateOtp } = require('../utils/validators');
+const { sendOtpEmail } = require('../services/emailService');
+const { sendOtpSms } = require('../services/smsService');
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
@@ -11,7 +14,7 @@ const generateToken = (user) => {
   return jwt.sign(
     { id: user._id || user.id, role: user.role },
     process.env.JWT_SECRET || 'medcare_jwt_secret_key_2026_xyz',
-    { expiresIn: '7d' }
+    { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
   );
 };
 
@@ -40,139 +43,112 @@ let mockOtps = [];
 // Expose mock users for routes/api.js usage
 global.mockUsersList = mockUsers;
 
-// Generate 6-digit OTP and send email via Brevo
+const createOtpRecord = async ({ email, phone, otpCode }) => {
+  const otpHash = await bcrypt.hash(otpCode, 12);
+  const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+  await OTP.deleteMany({ email: email || null, phone: phone || null });
+  return OTP.create({ email: email || null, phone: phone || null, otpHash, expiresAt });
+};
+
+const sendOtpToDestination = async ({ email, phone, otpCode }) => {
+  if (phone) {
+    return await sendOtpSms(phone, otpCode);
+  }
+  if (email) {
+    return await sendOtpEmail(email, otpCode);
+  }
+  return { success: false, message: 'No destination configured for OTP delivery.' };
+};
+
+// Generate 6-digit OTP and send via email or SMS
 exports.sendOtp = async (req, res) => {
-  const { email } = req.body;
-  if (!email) {
-    return res.status(400).json({ success: false, message: "Email is required" });
+  const { email, phone, fullName } = req.body;
+  const normalizedEmail = email ? email.trim().toLowerCase() : undefined;
+  const normalizedPhone = phone ? phone.replace(/\D/g, '') : undefined;
+
+  if (!normalizedEmail && !normalizedPhone) {
+    return res.status(400).json({ success: false, message: 'Please provide an email address or phone number.' });
+  }
+
+  if (normalizedEmail && !validateEmail(normalizedEmail)) {
+    return res.status(400).json({ success: false, message: 'Please provide a valid email address.' });
+  }
+
+  if (normalizedPhone && !validatePhone(normalizedPhone)) {
+    return res.status(400).json({ success: false, message: 'Please provide a valid phone number with 10 to 15 digits.' });
   }
 
   try {
     const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
-    const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes expiry
+    const contactLabel = normalizedPhone ? normalizedPhone : normalizedEmail;
 
     if (global.isDbMock) {
-      // Mock DB: save OTP
-      mockOtps = mockOtps.filter(o => o.email !== email);
-      mockOtps.push({ email, otp: otpCode, expiresAt });
-      
+      mockOtps = mockOtps.filter((o) => o.email !== normalizedEmail && o.phone !== normalizedPhone);
+      mockOtps.push({ email: normalizedEmail, phone: normalizedPhone, otp: otpCode, expiresAt: new Date(Date.now() + 5 * 60 * 1000) });
       console.log(`\n======================================================`);
-      console.log(`[MOCK DB & BREVO] OTP FOR: ${email}`);
+      console.log(`[MOCK OTP] destination=${contactLabel}`);
       console.log(`OTP CODE: ${otpCode}`);
-      console.log(`Running in Mock DB Fallback mode.`);
       console.log(`======================================================\n`);
+      return res.status(200).json({ success: true, message: 'OTP sent successfully (Mock Mode)', mockOtp: otpCode });
+    }
 
-      return res.status(200).json({ 
-        success: true, 
-        message: "OTP sent successfully (Mock DB Mode - check console log)",
+    await createOtpRecord({ email: normalizedEmail, phone: normalizedPhone, otpCode });
+    const delivery = await sendOtpToDestination({ email: normalizedEmail, phone: normalizedPhone, otpCode });
+
+    if (!delivery.success) {
+      return res.status(200).json({
+        success: true,
+        message: `OTP generated successfully. ${delivery.message}`,
         mockOtp: otpCode
       });
     }
 
-    // Real DB flow
-    await OTP.deleteMany({ email });
-    await OTP.create({ email, otp: otpCode, expiresAt });
-
-    const brevoApiKey = process.env.BREVO_API_KEY;
-    const isMock = !brevoApiKey || brevoApiKey === 'your_brevo_api_key';
-
-    if (isMock) {
-      console.log(`\n======================================================`);
-      console.log(`[MOCK BREVO] SENDING OTP TO: ${email}`);
-      console.log(`OTP CODE: ${otpCode}`);
-      console.log(`======================================================\n`);
-
-      return res.status(200).json({ 
-        success: true, 
-        message: "OTP sent successfully (Mock Mode - check console)",
-        mockOtp: otpCode
-      });
-    }
-
-    // Real Brevo Call
-    const postData = JSON.stringify({
-      sender: { name: "MedCare Store", email: process.env.BREVO_SENDER_EMAIL || "noreply@medcare.com" },
-      to: [{ email }],
-      subject: "Your MedCare Login OTP",
-      htmlContent: `
-        <div style="font-family: 'Poppins', sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
-          <h2 style="color: #0066FF;">MedCare Verification</h2>
-          <p>Use the following 6-digit OTP code to log in:</p>
-          <div style="font-size: 24px; font-weight: bold; background: #f4f6fa; padding: 15px; text-align: center; color: #0066FF;">
-            ${otpCode}
-          </div>
-        </div>
-      `
-    });
-
-    const options = {
-      hostname: 'api.brevo.com',
-      port: 443,
-      path: '/v3/smtp/email',
-      method: 'POST',
-      headers: {
-        'accept': 'application/json',
-        'api-key': brevoApiKey,
-        'content-type': 'application/json',
-        'Content-Length': Buffer.byteLength(postData)
-      }
-    };
-
-    const request = https.request(options, (response) => {
-      let data = '';
-      response.on('data', (chunk) => { data += chunk; });
-      response.on('end', () => {
-        if (response.statusCode >= 200 && response.statusCode < 300) {
-          return res.status(200).json({ success: true, message: "OTP sent successfully to email" });
-        } else {
-          return res.status(500).json({ success: false, message: "Failed to send email via Brevo", fallbackOtp: otpCode });
-        }
-      });
-    });
-
-    request.on('error', (error) => {
-      return res.status(500).json({ success: false, message: "Failed to send OTP", fallbackOtp: otpCode });
-    });
-
-    request.write(postData);
-    request.end();
-
+    return res.status(200).json({ success: true, message: `OTP sent successfully to ${normalizedPhone ? 'phone' : 'email'}.` });
   } catch (error) {
-    console.error("sendOtp error:", error);
-    res.status(500).json({ success: false, message: "Server error while sending OTP" });
+    console.error('sendOtp error:', error);
+    return res.status(500).json({ success: false, message: 'Server error while sending OTP' });
   }
 };
 
 // Verify OTP code
 exports.verifyOtp = async (req, res) => {
-  const { email, otp } = req.body;
-  if (!email || !otp) {
-    return res.status(400).json({ success: false, message: "Email and OTP are required" });
+  const { email, phone, otp } = req.body;
+  const normalizedEmail = email ? email.trim().toLowerCase() : undefined;
+  const normalizedPhone = phone ? phone.replace(/\D/g, '') : undefined;
+
+  if (!normalizedEmail && !normalizedPhone) {
+    return res.status(400).json({ success: false, message: 'Email or phone is required to verify OTP.' });
+  }
+
+  if (!validateOtp(otp)) {
+    return res.status(400).json({ success: false, message: 'Enter a valid 6-digit OTP code.' });
+  }
+
+  if (normalizedEmail && !validateEmail(normalizedEmail)) {
+    return res.status(400).json({ success: false, message: 'Please provide a valid email address.' });
+  }
+
+  if (normalizedPhone && !validatePhone(normalizedPhone)) {
+    return res.status(400).json({ success: false, message: 'Please provide a valid phone number.' });
   }
 
   try {
     if (global.isDbMock) {
-      const record = mockOtps.find(o => o.email === email && o.otp === otp);
-      if (!record) {
-        return res.status(400).json({ success: false, message: "Invalid or expired OTP" });
+      const record = mockOtps.find((o) => (normalizedEmail && o.email === normalizedEmail) || (normalizedPhone && o.phone === normalizedPhone));
+      if (!record || record.otp !== otp || record.expiresAt < new Date()) {
+        return res.status(400).json({ success: false, message: 'Invalid or expired OTP' });
       }
 
-      // Check expiry
-      if (record.expiresAt < new Date()) {
-        return res.status(400).json({ success: false, message: "OTP has expired" });
-      }
-
-      // Find or create in-memory User
-      let user = mockUsers.find(u => u.email === email);
+      let user = mockUsers.find((u) => (normalizedEmail && u.email === normalizedEmail) || (normalizedPhone && u.phone === normalizedPhone));
       if (!user) {
-        const defaultName = email.split('@')[0];
-        // If first user, make admin, otherwise user
+        const defaultName = normalizedEmail ? normalizedEmail.split('@')[0] : `user${Date.now()}`;
         const role = mockUsers.length === 0 ? 'admin' : 'user';
         user = {
           id: 'mock_user_' + Date.now(),
           _id: 'mock_user_' + Date.now(),
           name: defaultName.charAt(0).toUpperCase() + defaultName.slice(1),
-          email,
+          email: normalizedEmail,
+          phone: normalizedPhone,
           role,
           avatar: `https://api.dicebear.com/7.x/adventurer/svg?seed=${defaultName}`,
           addresses: [],
@@ -183,48 +159,63 @@ exports.verifyOtp = async (req, res) => {
       }
 
       const token = generateToken(user);
-      return res.status(200).json({
-        success: true,
-        token,
-        user
-      });
+      return res.status(200).json({ success: true, token, user });
     }
 
-    // Real DB flow
-    const record = await OTP.findOne({ email, otp, used: false });
+    const query = {};
+    if (normalizedEmail) query.email = normalizedEmail;
+    if (normalizedPhone) query.phone = normalizedPhone;
+
+    const record = await OTP.findOne({ ...query, used: false }).sort({ expiresAt: -1 });
     if (!record) {
-      return res.status(400).json({ success: false, message: "Invalid or expired OTP" });
+      return res.status(400).json({ success: false, message: 'Invalid or expired OTP' });
     }
 
     if (record.expiresAt < new Date()) {
-      return res.status(400).json({ success: false, message: "OTP has expired" });
+      return res.status(400).json({ success: false, message: 'OTP has expired' });
+    }
+
+    const isMatch = await bcrypt.compare(otp, record.otpHash);
+    if (!isMatch) {
+      return res.status(400).json({ success: false, message: 'Invalid or expired OTP' });
     }
 
     record.used = true;
     await record.save();
 
-    let user = await User.findOne({ email });
+    let user = null;
+    if (normalizedEmail) user = await User.findOne({ email: normalizedEmail });
+    if (!user && normalizedPhone) user = await User.findOne({ phone: normalizedPhone });
+
     if (!user) {
-      const defaultName = email.split('@')[0];
+      const defaultName = normalizedEmail ? normalizedEmail.split('@')[0] : `user${Date.now()}`;
       const userCount = await User.countDocuments({});
       const role = userCount === 0 ? 'admin' : 'user';
       user = await User.create({
         name: defaultName.charAt(0).toUpperCase() + defaultName.slice(1),
-        email,
+        email: normalizedEmail,
+        phone: normalizedPhone,
         role,
         avatar: `https://api.dicebear.com/7.x/adventurer/svg?seed=${defaultName}`
       });
+    } else {
+      let changed = false;
+      if (!user.email && normalizedEmail) {
+        user.email = normalizedEmail;
+        changed = true;
+      }
+      if (!user.phone && normalizedPhone) {
+        user.phone = normalizedPhone;
+        changed = true;
+      }
+      if (changed) await user.save();
     }
 
     const token = generateToken(user);
-    res.status(200).json({
-      success: true,
-      token,
-      user
-    });
+    return res.status(200).json({ success: true, token, user });
   } catch (error) {
-    console.error("verifyOtp error:", error);
-    res.status(500).json({ success: false, message: "Server error verifying OTP" });
+    console.error('verifyOtp error:', error);
+    return res.status(500).json({ success: false, message: 'Server error verifying OTP' });
   }
 };
 

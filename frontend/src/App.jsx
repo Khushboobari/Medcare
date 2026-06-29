@@ -154,7 +154,9 @@ const MainApp = () => {
             <p className="text-slate-400 text-xs font-semibold">Authorizing MedCare session...</p>
           </div>
         ) : (
-          renderPage()
+          <div key={currentPage} className="animate-slide-up">
+            {renderPage()}
+          </div>
         )}
       </main>
 

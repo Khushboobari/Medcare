@@ -76,6 +76,11 @@ const ScrollFadeSection = ({ children, delay = 0 }) => {
 /* ==============================
    MEDICINE CARD COMPONENT
    ============================== */
+const getMedicineImage = (name) => {
+  const encodedName = encodeURIComponent(name.replace(/\s+/g, '+'));
+  return `https://dummyimage.com/600x400/eff6ff/1f2937&text=${encodedName}`;
+};
+
 const MedicineCard = ({ med, onView, onAdd }) => (
   <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 overflow-hidden shadow-sm hover-lift group flex flex-col">
     {/* Image */}
@@ -84,7 +89,7 @@ const MedicineCard = ({ med, onView, onAdd }) => (
       onClick={onView}
     >
       <img
-        src={med.image}
+        src={getMedicineImage(med.name)}
         alt={med.name}
         loading="lazy"
         className="w-full h-full object-cover card-img-zoom mix-blend-multiply dark:mix-blend-normal"
@@ -269,7 +274,7 @@ const Home = ({ setCurrentPage, setShopFilters, setSelectedMedicineId }) => {
             <h1 className="text-4xl sm:text-5xl md:text-6xl font-black leading-tight text-slate-800 dark:text-white">
               Your Health,{' '}
               <br className="hidden sm:block" />
-              <span className="gradient-text">Delivered in Minutes.</span>
+              <span className="gradient-text animate-wave">Delivered in Minutes.</span>
             </h1>
 
             <p className="text-base sm:text-lg text-slate-500 dark:text-slate-300 max-w-xl leading-relaxed">

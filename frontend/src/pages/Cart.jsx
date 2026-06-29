@@ -121,7 +121,7 @@ const Cart = ({ setCurrentPage, setCheckoutDetails }) => {
                 if (!med) return null;
 
                 return (
-                  <div key={item._id} className="grid grid-cols-1 sm:grid-cols-12 gap-4 p-4 items-center">
+                  <div key={item._id} className="grid grid-cols-1 sm:grid-cols-12 gap-4 p-4 items-center cart-item-animate">
                     
                     {/* Item visual */}
                     <div className="col-span-6 flex items-center gap-3">
