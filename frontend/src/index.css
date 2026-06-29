@@ -1,0 +1,607 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ==========================================
+   GOOGLE FONTS IMPORT
+   ========================================== */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap');
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    -webkit-tap-highlight-color: transparent;
+  }
+  body {
+    font-family: 'Poppins', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  * {
+    box-sizing: border-box;
+  }
+}
+
+/* ==========================================
+   1. FLOATING PILL ANIMATION
+   ========================================== */
+@keyframes floatAndRotate {
+  0%   { transform: translateY(0px) rotate(0deg); }
+  25%  { transform: translateY(-12px) rotate(90deg); }
+  50%  { transform: translateY(-22px) rotate(180deg); }
+  75%  { transform: translateY(-12px) rotate(270deg); }
+  100% { transform: translateY(0px) rotate(360deg); }
+}
+
+.animate-float-pill {
+  animation: floatAndRotate 8s ease-in-out infinite;
+  filter: drop-shadow(0 20px 30px rgba(0,102,255,0.25));
+}
+
+/* ==========================================
+   2. PARTICLE DOTS HERO BACKGROUND
+   ========================================== */
+.particle-bg {
+  background-image: radial-gradient(circle, rgba(0, 102, 255, 0.18) 1.5px, transparent 1.5px);
+  background-size: 28px 28px;
+  animation: particleMove 20s linear infinite;
+}
+
+@keyframes particleMove {
+  0%   { background-position: 0 0; }
+  100% { background-position: 56px 56px; }
+}
+
+.dark .particle-bg {
+  background-image: radial-gradient(circle, rgba(0, 212, 170, 0.12) 1.5px, transparent 1.5px);
+}
+
+/* ==========================================
+   3. GRADIENT ANIMATED OFFER BANNER
+   ========================================== */
+@keyframes gradientShift {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.animate-gradient-banner {
+  background: linear-gradient(135deg, #0066FF, #00D4AA, #6c63ff, #0066FF);
+  background-size: 300% 300%;
+  animation: gradientShift 8s ease infinite;
+}
+
+/* ==========================================
+   4. GLASSMORPHISM NAVBAR
+   ========================================== */
+.glass-nav {
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow: 0 2px 20px rgba(0, 102, 255, 0.06);
+}
+
+.dark .glass-nav {
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.3);
+}
+
+/* ==========================================
+   5. HOVER LIFT EFFECT (CARDS)
+   ========================================== */
+.hover-lift {
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.hover-lift:hover {
+  transform: translateY(-7px);
+  box-shadow: 0 16px 32px -8px rgba(0, 102, 255, 0.18);
+}
+
+.dark .hover-lift:hover {
+  box-shadow: 0 16px 32px -8px rgba(0, 212, 170, 0.12);
+}
+
+/* ==========================================
+   6. BUTTON SCALE ON HOVER
+   ========================================== */
+.btn-scale {
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.2s ease,
+              background-color 0.2s ease;
+  will-change: transform;
+}
+
+.btn-scale:hover {
+  transform: scale(1.04);
+}
+
+.btn-scale:active {
+  transform: scale(0.97);
+}
+
+/* ==========================================
+   7. TOAST SLIDE FROM RIGHT
+   ========================================== */
+@keyframes slideInRight {
+  from {
+    transform: translateX(110%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideOutRight {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(110%);
+    opacity: 0;
+  }
+}
+
+.animate-toast-slide {
+  animation: slideInRight 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* ==========================================
+   8. SCROLL FADE-IN SECTIONS
+   ========================================== */
+.fade-in-section {
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+  visibility: hidden;
+}
+
+.fade-in-section.is-visible {
+  opacity: 1;
+  transform: none;
+  visibility: visible;
+}
+
+/* ==========================================
+   9. SHIMMER SKELETON LOADING
+   ========================================== */
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.skeleton-shimmer {
+  background: linear-gradient(90deg,
+    rgba(148, 163, 184, 0.15) 25%,
+    rgba(148, 163, 184, 0.3) 50%,
+    rgba(148, 163, 184, 0.15) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.6s ease-in-out infinite;
+}
+
+.dark .skeleton-shimmer {
+  background: linear-gradient(90deg,
+    rgba(51, 65, 85, 0.5) 25%,
+    rgba(71, 85, 105, 0.7) 50%,
+    rgba(51, 65, 85, 0.5) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.6s ease-in-out infinite;
+}
+
+/* ==========================================
+   10. PULSE GLOW ANIMATION (Badges, highlights)
+   ========================================== */
+@keyframes pulseGlow {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(0, 102, 255, 0.35);
+  }
+  50% {
+    box-shadow: 0 0 0 10px rgba(0, 102, 255, 0);
+  }
+}
+
+.animate-pulse-glow {
+  animation: pulseGlow 2.5s ease-in-out infinite;
+}
+
+.dark .animate-pulse-glow {
+  animation: pulseGlowDark 2.5s ease-in-out infinite;
+}
+
+@keyframes pulseGlowDark {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(0, 212, 170, 0.35);
+  }
+  50% {
+    box-shadow: 0 0 0 10px rgba(0, 212, 170, 0);
+  }
+}
+
+/* ==========================================
+   11. HEARTBEAT ANIMATION (Rx badge)
+   ========================================== */
+@keyframes heartbeat {
+  0%, 100% { transform: scale(1); }
+  14%       { transform: scale(1.08); }
+  28%       { transform: scale(1); }
+  42%       { transform: scale(1.06); }
+  70%       { transform: scale(1); }
+}
+
+.animate-heartbeat {
+  animation: heartbeat 2s ease-in-out infinite;
+}
+
+/* ==========================================
+   12. BOUNCE IN (Modal/Drawer open)
+   ========================================== */
+@keyframes bounceIn {
+  0%   { transform: scale(0.8); opacity: 0; }
+  60%  { transform: scale(1.04); opacity: 1; }
+  80%  { transform: scale(0.97); }
+  100% { transform: scale(1); }
+}
+
+.animate-bounce-in {
+  animation: bounceIn 0.45s cubic-bezier(0.36, 0.07, 0.19, 0.97) forwards;
+}
+
+/* ==========================================
+   13. RIPPLE EFFECT (Buttons)
+   ========================================== */
+.ripple-btn {
+  position: relative;
+  overflow: hidden;
+}
+
+.ripple-btn::after {
+  content: '';
+  display: block;
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  background-image: radial-gradient(circle, rgba(255,255,255,0.3) 10%, transparent 10.01%);
+  background-repeat: no-repeat;
+  background-position: 50%;
+  transform: scale(10, 10);
+  opacity: 0;
+  transition: transform 0.5s, opacity 0.8s;
+}
+
+.ripple-btn:active::after {
+  transform: scale(0, 0);
+  opacity: 0.3;
+  transition: 0s;
+}
+
+/* ==========================================
+   14. SLIDE UP ANIMATION (Page transitions)
+   ========================================== */
+@keyframes slideUpIn {
+  from {
+    transform: translateY(16px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-up {
+  animation: slideUpIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* ==========================================
+   15. TYPING CURSOR BLINK (Hero headline)
+   ========================================== */
+@keyframes blinkCursor {
+  0%, 100% { border-right-color: #0066FF; }
+  50%       { border-right-color: transparent; }
+}
+
+.animate-cursor {
+  border-right: 3px solid #0066FF;
+  animation: blinkCursor 1s step-end infinite;
+  padding-right: 3px;
+}
+
+/* ==========================================
+   16. NUMBER COUNTER HIGHLIGHT
+   ========================================== */
+@keyframes countUp {
+  from { transform: translateY(8px); opacity: 0; }
+  to   { transform: translateY(0);   opacity: 1; }
+}
+
+.animate-count-up {
+  animation: countUp 0.5s ease-out;
+}
+
+/* ==========================================
+   17. WAVE ANIMATION (Hero bottom border)
+   ========================================== */
+@keyframes wave {
+  0%   { transform: scaleX(1) translateX(0); }
+  50%  { transform: scaleX(1.05) translateX(-2%); }
+  100% { transform: scaleX(1) translateX(0); }
+}
+
+.animate-wave {
+  animation: wave 6s ease-in-out infinite;
+}
+
+/* ==========================================
+   18. MEDICINE CARD IMAGE ZOOM
+   ========================================== */
+.card-img-zoom {
+  transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.card-img-zoom:hover {
+  transform: scale(1.08);
+}
+
+/* ==========================================
+   19. STEPPER DOT ANIMATION (Order Tracking)
+   ========================================== */
+@keyframes stepPulse {
+  0%   { box-shadow: 0 0 0 0 rgba(0,102,255,0.5); }
+  70%  { box-shadow: 0 0 0 8px rgba(0,102,255,0); }
+  100% { box-shadow: 0 0 0 0 rgba(0,102,255,0); }
+}
+
+.step-active {
+  animation: stepPulse 1.8s ease-out infinite;
+}
+
+/* ==========================================
+   20. PROGRESS BAR FILL
+   ========================================== */
+@keyframes fillBar {
+  from { width: 0%; }
+  to   { width: var(--fill); }
+}
+
+.progress-bar {
+  animation: fillBar 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* ==========================================
+   21. SEARCH BAR FOCUS GLOW
+   ========================================== */
+.search-glow:focus-within {
+  box-shadow: 0 0 0 3px rgba(0, 102, 255, 0.2);
+  border-color: #0066FF !important;
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.dark .search-glow:focus-within {
+  box-shadow: 0 0 0 3px rgba(0, 212, 170, 0.2);
+  border-color: #00D4AA !important;
+}
+
+/* ==========================================
+   22. FLOATING LABEL INPUT
+   ========================================== */
+.input-float label {
+  transition: all 0.2s ease;
+}
+
+/* ==========================================
+   23. DRAG AND DROP ZONE ANIMATION
+   ========================================== */
+@keyframes borderDance {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.drop-zone-active {
+  background: linear-gradient(90deg, #0066FF22, #00D4AA22, #0066FF22);
+  background-size: 200% 100%;
+  animation: borderDance 2s linear infinite;
+}
+
+/* ==========================================
+   24. MOBILE TOUCH FRIENDLY OVERRIDES
+   ========================================== */
+@media (max-width: 640px) {
+  .hover-lift:hover {
+    transform: none; /* Disable hover lift on mobile (touch) */
+    box-shadow: none;
+  }
+
+  .btn-scale:hover {
+    transform: none;
+  }
+
+  /* Larger tap targets on mobile */
+  button, a {
+    min-height: 40px;
+  }
+}
+
+/* ==========================================
+   25. GLASSMORPHISM CARD
+   ========================================== */
+.glass-card {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+}
+
+.dark .glass-card {
+  background: rgba(30, 41, 59, 0.75);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* ==========================================
+   26. NOTIFICATION BADGE BOUNCE
+   ========================================== */
+@keyframes badgeBounce {
+  0%, 100% { transform: scale(1); }
+  50%       { transform: scale(1.25); }
+}
+
+.badge-bounce {
+  animation: badgeBounce 0.8s ease-in-out;
+}
+
+/* ==========================================
+   27. GRADIENT TEXT
+   ========================================== */
+.gradient-text {
+  background: linear-gradient(135deg, #0066FF, #00D4AA);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ==========================================
+   28. CATEGORY CARD HOVER ANIMATION
+   ========================================== */
+.category-card {
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.category-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(0,102,255,0.08), rgba(0,212,170,0.08));
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  border-radius: inherit;
+}
+
+.category-card:hover::before {
+  opacity: 1;
+}
+
+.category-card:hover {
+  transform: translateY(-5px) scale(1.02);
+  box-shadow: 0 12px 28px -8px rgba(0, 102, 255, 0.2);
+}
+
+.dark .category-card:hover {
+  box-shadow: 0 12px 28px -8px rgba(0, 212, 170, 0.15);
+}
+
+/* ==========================================
+   29. SECTION DIVIDER ANIMATION
+   ========================================== */
+.divider-glow {
+  background: linear-gradient(90deg, transparent, #0066FF44, #00D4AA44, transparent);
+  height: 1px;
+  border: none;
+}
+
+/* ==========================================
+   30. SCROLLBAR STYLING
+   ========================================== */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 102, 255, 0.3);
+  border-radius: 99px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 102, 255, 0.6);
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: rgba(0, 212, 170, 0.3);
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 212, 170, 0.6);
+}
+
+/* ==========================================
+   31. CART ITEM SLIDE IN
+   ========================================== */
+@keyframes cartItemIn {
+  from {
+    opacity: 0;
+    transform: translateX(-16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.cart-item-animate {
+  animation: cartItemIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* ==========================================
+   32. STATUS BADGE PULSE
+   ========================================== */
+@keyframes statusPulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.65; }
+}
+
+.status-live {
+  animation: statusPulse 1.5s ease-in-out infinite;
+}
+
+/* ==========================================
+   33. HERO BLOB ANIMATION
+   ========================================== */
+@keyframes blobMove {
+  0%, 100% { border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%; }
+  25%       { border-radius: 30% 60% 70% 40% / 50% 60% 30% 60%; }
+  50%       { border-radius: 50% 60% 30% 60% / 30% 50% 60% 40%; }
+  75%       { border-radius: 40% 60% 50% 50% / 50% 40% 60% 50%; }
+}
+
+.animate-blob {
+  animation: blobMove 12s ease-in-out infinite;
+}
+
+/* ==========================================
+   34. RESPONSIVE UTILITIES
+   ========================================== */
+/* Safe area insets for notch/dynamic island devices */
+.safe-top    { padding-top:    env(safe-area-inset-top); }
+.safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
+
+/* Touch device optimizations */
+@media (hover: none) and (pointer: coarse) {
+  .hover-lift:hover,
+  .category-card:hover,
+  .btn-scale:hover {
+    transform: none;
+    box-shadow: none;
+  }
+}
